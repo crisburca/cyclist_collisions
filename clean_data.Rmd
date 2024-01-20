@@ -1,0 +1,29 @@
+---
+title: "clean_data"
+output: pdf_document
+date: "2024-01-20"
+---
+
+```{r setup, include=FALSE}
+library(usethis)
+library(gitcreds)
+library(tidyverse)
+library(ggplot2)
+library(knitr)
+library(gt)
+```
+
+```{r}
+data <- read_csv("Motor Vehicle Collisions with KSI Data - 4326.csv")
+
+head(data)
+
+cyclists_collisions <- data %>% filter(IMPACTYPE == 'Cyclist Collisions' | INVTYPE == 'Cyclist') %>% select(IMPACTYPE, INVTYPE, CYCLISTYPE, CYCACT, CYCCOND, CYCLIST, LIGHT, VISIBILITY)
+cyclists_collisions
+#cyclists collisions under light conditions
+#severity of collision 
+```
+
+```{r}
+gt(cyclists_collisions)
+```
