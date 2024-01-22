@@ -11,19 +11,62 @@ library(tidyverse)
 library(ggplot2)
 library(knitr)
 library(gt)
+library(lubridate)
+library(dplyr)
 ```
 
-```{r}
+```{r, include=FALSE}
+#clean up data and display important variables
+
 data <- read_csv("Motor Vehicle Collisions with KSI Data - 4326.csv")
-
 head(data)
+```
 
-cyclists_collisions <- data %>% filter(IMPACTYPE == 'Cyclist Collisions' | INVTYPE == 'Cyclist') %>% select(IMPACTYPE, INVTYPE, CYCLISTYPE, CYCACT, CYCCOND, CYCLIST, LIGHT, VISIBILITY)
-cyclists_collisions
-#cyclists collisions under light conditions
-#severity of collision 
+
+```{r, include=FALSE}
+cyclists_collisions <- data %>% filter(IMPACTYPE == 'Cyclist Collisions', CYCLIST == "Yes") %>% select(DATE,IMPACTYPE, INVTYPE, INJURY, ACCLASS, CYCLIST)
+```
+
+
+
+
+```{r}
+cyclists_collisions$DATE <- as.Date(cyclists_collisions$DATE)
+cyclists_collisions <- cyclists_collisions %>% arrange(DATE)
+col_seasons <- cyclists_collisions %>% mutate(MONTH = month(DATE), SEASON = case_when(month(DATE) %in% c(12, 1 , 2) ~ "Winter", month(DATE) %in% c(3,4,5)~"Spring", month(DATE) %in% c(6,7,8) ~ "Summer", month(DATE) %in% c(9,10,11)~"Fall"))
+
+cyclists_collisions <- col_seasons
+
+```
+
+```{r, include=TRUE}
+total_accidents <- cyclists_collisions %>% group_by(SEASON) %>% summarise(count=n())
+
+
+years <- cyclists_collisions %>% group_by(YEAR = format(DATE, "%Y"))
+
+kable(total_accidents, booktabs = TRUE, col.names = c("Season", "Count"), caption = 'number of cyclist collisions each season')
+
+level_injury <- data.frame(season= cyclists_collisions$SEASON, injury = cyclists_collisions$INJURY, date = cyclists_collisions$DATE)
+
 ```
 
 ```{r}
-gt(cyclists_collisions)
+#| echo: false
+years %>% ggplot(mapping = aes(x = SEASON, fill = INJURY)) + geom_bar(position = "dodge2") +
+  labs(x = "Season", y = "Number ofobservations", fill= "Level of injury") + 
+  theme(legend.position = "bottom") +
+  facet_wrap(vars(YEAR), scales = "free")
+
+years$YYYY <- format(years$DATE, "%Y")
+years_sum <- years %>% group_by(YYYY, INJURY) %>% summarise(count=n(), .groups="drop")
+years_sum
+years_sum %>% ggplot(aes(x = YYYY, y = count, color = INJURY)) + 
+  geom_point() +
+  geom_line(aes(group = INJURY)) +
+  theme_minimal()
+
 ```
+
+
+
