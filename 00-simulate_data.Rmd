@@ -1,0 +1,57 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+#| include: false
+library(usethis)
+library(gitcreds)
+library(tidyverse)
+library(ggplot2)
+library(knitr)
+library(gt)
+library(lubridate)
+library(dplyr)
+```
+
+```{r}
+#| echo: false
+#| #| warning: false
+data <- read_csv("Motor Vehicle Collisions with KSI Data - 4326.csv")
+
+cyclists_collisions <- data %>% filter(IMPACTYPE == 'Cyclist Collisions', CYCLIST == "Yes") %>% select(DATE,IMPACTYPE, INVTYPE, INJURY, ACCLASS, CYCLIST)
+
+col_seasons <- cyclists_collisions %>% mutate(MONTH = month(DATE), SEASON = case_when(month(DATE) %in% c(12, 1 , 2) ~ "Winter", month(DATE) %in% c(3,4,5)~"Spring", month(DATE) %in% c(6,7,8) ~ "Summer", month(DATE) %in% c(9,10,11)~"Fall"))
+cyclists_collisions <- col_seasons
+
+years <- cyclists_collisions %>% group_by(YEAR = format(DATE, "%Y"))
+
+new <- years %>% select(MONTH, YEAR, INJURY) %>% filter(YEAR <2010) %>% group_by(MONTH, YEAR, INJURY) %>% summarise(count = n(), .groups = "drop")
+
+set.seed(302)
+n_sim <- 1000
+
+simulated_data <- list()
+
+simulation <- for(i in 1:n_sim){
+  simulated_data[[i]] <- new %>%
+    group_by(MONTH, YEAR, INJURY) %>%
+    summarise(count = rpois(n(), lambda = mean(count)), .groups = "drop")
+}
+simulated_data <- bind_rows(simulated_data, .id = "simulation")
+
+
+simulated_data %>% ggplot(aes(x = count)) +
+  geom_histogram(binwidth = 1) + 
+  facet_wrap(~INJURY) +
+  theme_minimal()
+
+
+simulated_data %>% ggplot(aes(x = MONTH, y = count, color = INJURY)) + 
+  geom_point() +
+  geom_line(aes(group = INJURY)) +
+  facet_wrap(~YEAR)
+  theme_minimal() + labs(x = "Year", y = "Count", caption = "Some bullshit")
+```

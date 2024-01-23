@@ -22,13 +22,22 @@ data <- read_csv("Motor Vehicle Collisions with KSI Data - 4326.csv")
 head(data)
 ```
 
+https://cyclingmagazine.ca/sections/news/there-was-a-pro-car-protest-in-high-park-and-it-was-obviously-absolute-chaos/
+- protests againt city 
 
+https://phys.org/news/2021-02-toronto-covid-bike-lane-expansion.html
+- expansion fo bike lanes due to covid-19 said to find jobs
+
+https://www.bbc.com/news/world-us-canada-44746889
+- are toronto streets safe for cycling?
+
+https://www.cbc.ca/news/canada/toronto/toronto-election-vision-zero-1.6605819
+- the prize article 
+- people die 
+""
 ```{r, include=FALSE}
 cyclists_collisions <- data %>% filter(IMPACTYPE == 'Cyclist Collisions', CYCLIST == "Yes") %>% select(DATE,IMPACTYPE, INVTYPE, INJURY, ACCLASS, CYCLIST)
 ```
-
-
-
 
 ```{r}
 cyclists_collisions$DATE <- as.Date(cyclists_collisions$DATE)
@@ -48,7 +57,7 @@ years <- cyclists_collisions %>% group_by(YEAR = format(DATE, "%Y"))
 kable(total_accidents, booktabs = TRUE, col.names = c("Season", "Count"), caption = 'number of cyclist collisions each season')
 
 level_injury <- data.frame(season= cyclists_collisions$SEASON, injury = cyclists_collisions$INJURY, date = cyclists_collisions$DATE)
-
+years
 ```
 
 ```{r}
@@ -58,15 +67,28 @@ years %>% ggplot(mapping = aes(x = SEASON, fill = INJURY)) + geom_bar(position =
   theme(legend.position = "bottom") +
   facet_wrap(vars(YEAR), scales = "free")
 
-years$YYYY <- format(years$DATE, "%Y")
-years_sum <- years %>% group_by(YYYY, INJURY) %>% summarise(count=n(), .groups="drop")
+years_sum <- years %>% group_by(YEAR, INJURY) %>% summarise(count=n(), .groups="drop")
 years_sum
-years_sum %>% ggplot(aes(x = YYYY, y = count, color = INJURY)) + 
+years_sum %>% ggplot(aes(x = YEAR, y = count, color = INJURY)) + 
   geom_point() +
   geom_line(aes(group = INJURY)) +
-  theme_minimal()
+  theme_minimal() + labs(x = "Year", y = "Count", caption = "Some bullshit")
 
 ```
+```{r}
+years_sum <- years %>% group_by(MONTH, INJURY) %>% summarise(count=n(), .groups="drop")
+years_sum
+#years_sum <- years %>% group_by(MONTH, INJURY) %>% mutate(count = n())
+#years_sum
 
+new <- years %>% select(MONTH, YEAR, INJURY) %>% filter(YEAR <2010) %>% group_by(MONTH, YEAR, INJURY) %>% summarise(count = n(), .groups = "drop")
+new
+
+new %>% ggplot(aes(x = MONTH, y = count, color = INJURY)) + 
+  geom_point() +
+  geom_line(aes(group = INJURY)) +
+  facet_wrap(~YEAR)
+  theme_minimal() + labs(x = "Year", y = "Count", caption = "Some bullshit")
+```
 
 

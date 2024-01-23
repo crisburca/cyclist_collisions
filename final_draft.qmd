@@ -1,0 +1,62 @@
+---
+title: "final draft"
+author: "Cristina Burca"
+date: "January 23rd, 2024"
+abstract: ""
+introduction: ""
+format:
+  pdf:
+    toc: true
+data: ""
+references: ""
+---
+
+```{r}
+#| include: false
+library(usethis)
+library(gitcreds)
+library(tidyverse)
+library(ggplot2)
+library(knitr)
+library(lubridate)
+library(patchwork)
+```
+
+-abstract- 
+
+
+```{r}
+#| include: false
+data <- read_csv("Motor Vehicle Collisions with KSI Data - 4326.csv")
+
+#filtering data
+cyclists_collisions <- data %>% filter(IMPACTYPE == 'Cyclist Collisions', CYCLIST == "Yes") %>% select(DATE,IMPACTYPE, INVTYPE, INJURY, ACCLASS, CYCLIST)
+```
+
+ Toronto is one of the many cities that has been advocating for citizens to find more environmentally friendly transportation to work. One of the many things the city has been promoting is biking, by implementing bike lanes onto streets and providing rentable city bikes that you may pick up and drop off at a number of locations. Many locals also enjoy bike rides in warm weather or to local events and shops. However, the streets of downtown Toronto have been many times been deemed unsafe due to traffic, construction and lack of bike lanes. 
+
+```{r}
+#| include: false
+#creating MONTH and SEASON column 
+cyclists_collisions$DATE <- as.Date(cyclists_collisions$DATE)
+cyclists_collisions <- cyclists_collisions %>% arrange(DATE)
+
+col_seasons <- cyclists_collisions %>% mutate(MONTH = month(DATE), SEASON = case_when(month(DATE) %in% c(12, 1 , 2) ~ "Winter", month(DATE) %in% c(3,4,5) ~ "Spring", month(DATE) %in% c(6,7,8) ~ "Summer", month(DATE) %in% c(9,10,11) ~ "Fall"))
+
+years <- cyclists_collisions %>% group_by(YEAR = format(DATE, "%Y"))
+```
+
+
+```{r}
+#| echo: false
+
+#years %>% filter(YEAR == 2017, INJURY == 'Fatal') %>% summarise(n=n())
+#years %>% filter(YEAR == 2018, INJURY == 'Fatal') %>% summarise(n=n())
+year_2017 <- years %>% filter(YEAR == 2017) %>% ggplot(mapping = aes(x = YEAR, fill = INJURY)) + geom_bar(position = "dodge2") +
+  labs(x = "Year", y = "Number ofobservations", fill= "Level of injury") +
+  theme(legend.position="none")
+year_2018 <- years %>% filter(YEAR == 2018) %>% ggplot(mapping = aes(x = YEAR, fill = INJURY)) + geom_bar(position = "dodge2") +
+  labs(x = "Year", y = "Number ofobservations", fill= "Level of injury")
+
+year_2017 + year_2018
+```
