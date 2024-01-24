@@ -15,10 +15,7 @@ references: ""
 
 ```{r}
 #| include: false
-library(usethis)
-library(gitcreds)
 library(tidyverse)
-library(ggplot2)
 library(knitr)
 library(lubridate)
 library(patchwork)
