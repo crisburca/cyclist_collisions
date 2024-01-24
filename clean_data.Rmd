@@ -15,7 +15,7 @@ library(lubridate)
 library(dplyr)
 ```
 
-```{r, include=FALSE}
+```{r, include=TRUE}
 #clean up data and display important variables
 
 data <- read_csv("Motor Vehicle Collisions with KSI Data - 4326.csv")
@@ -34,6 +34,13 @@ https://www.bbc.com/news/world-us-canada-44746889
 https://www.cbc.ca/news/canada/toronto/toronto-election-vision-zero-1.6605819
 - the prize article 
 - people die 
+
+1
+
+- not committing
+- how to render to pdf?
+- toc?
+- how to cite chatgpt?
 ""
 ```{r, include=FALSE}
 cyclists_collisions <- data %>% filter(IMPACTYPE == 'Cyclist Collisions', CYCLIST == "Yes") %>% select(DATE,IMPACTYPE, INVTYPE, INJURY, ACCLASS, CYCLIST)
@@ -45,7 +52,6 @@ cyclists_collisions <- cyclists_collisions %>% arrange(DATE)
 col_seasons <- cyclists_collisions %>% mutate(MONTH = month(DATE), SEASON = case_when(month(DATE) %in% c(12, 1 , 2) ~ "Winter", month(DATE) %in% c(3,4,5)~"Spring", month(DATE) %in% c(6,7,8) ~ "Summer", month(DATE) %in% c(9,10,11)~"Fall"))
 
 cyclists_collisions <- col_seasons
-
 ```
 
 ```{r, include=TRUE}
@@ -58,6 +64,7 @@ kable(total_accidents, booktabs = TRUE, col.names = c("Season", "Count"), captio
 
 level_injury <- data.frame(season= cyclists_collisions$SEASON, injury = cyclists_collisions$INJURY, date = cyclists_collisions$DATE)
 years
+years %>% filter(INJURY == "Fatal" ) %>% summarise(n=n())
 ```
 
 ```{r}

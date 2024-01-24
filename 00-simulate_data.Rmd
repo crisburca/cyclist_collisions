@@ -18,7 +18,7 @@ library(dplyr)
 
 ```{r}
 #| echo: false
-#| #| warning: false
+#| warning: false
 data <- read_csv("Motor Vehicle Collisions with KSI Data - 4326.csv")
 
 cyclists_collisions <- data %>% filter(IMPACTYPE == 'Cyclist Collisions', CYCLIST == "Yes") %>% select(DATE,IMPACTYPE, INVTYPE, INJURY, ACCLASS, CYCLIST)
