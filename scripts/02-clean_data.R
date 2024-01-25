@@ -7,7 +7,7 @@ library(tidyverse)
 library(lubridate)
 library(dplyr)
 
-data <- read_csv("Motor Vehicle Collisions with KSI Data - 4326.csv", show_col_types = FALSE)
+data <- read_csv("/cloud/project/inputs/unedited_data.csv", show_col_types = FALSE)
 
 # filtering data
 years <- data %>% 
