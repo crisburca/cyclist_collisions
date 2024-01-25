@@ -10,11 +10,12 @@ format:
     toc_depth: 3  # upto three depths of headings (specified by #, ## and ###)
     number_sections: true
 data: ""
-references: ""
+bibliography: references.bib
 ---
 
 ```{r}
 #| include: false
+library(readr)
 library(tidyverse)
 library(knitr)
 library(lubridate)
@@ -24,34 +25,36 @@ library(patchwork)
 
 ```{r}
 #| include: false
-data <- read_csv("Motor Vehicle Collisions with KSI Data - 4326.csv")
+data <- read_csv("/cloud/project/inputs/data/unedited_data.csv")
 
 #filtering data
 cyclists_collisions <- data %>% filter(IMPACTYPE == 'Cyclist Collisions' | IMPACTYPE == 'Pedestrian Collisions') %>% select(DATE,IMPACTYPE, INVTYPE, INJURY)
+
 ```
 
 # 1. Introduction
- Toronto is one of the many cities that has been advocating for citizens to find more environmentally friendly transportation to work. One of the many things the city has been promoting is biking, walking or taking public transport. By implementing bike lanes onto streets and providing rentable city bikes that you may pick up and drop off at a number of locations, the city hopes to encourage citizens to use these options. Many locals also enjoy bike rides in warm weather or to local events and shops. However, the streets of downtown Toronto have been many times been deemed unsafe due to traffic, construction and lack of bike lanes for cyclists and pedestrains. 
- 
-Toronto is the most perilous city in the world to be a cyclist.
- 
-There are trends of cyclist and pedestrian collisions happening around the city, increasing by year. 
+  Toronto stands among the many cities that has been advocating for more eco-friendly commuting practices among its citizens. A key aspect of this initiative involves the promotion of alternative modes of transportation, such as cycling, walking, and utilizing public transit options. The city has taken measures to implement and enforce these commuting alternatives, including the constant integration of bike lanes on city roads and the introduction of rentable city bikes, with hubs conveniently placed around the city for pickup and return of the bikes. Besides a means of commuting to work, the city also encourages citizens to explore these option under favorable weather conditions or when venturing out to local events or shops of shorter distance.  
 
-For citizens to take advantage of newly built bike lanes and close-distance shopping, they must feel safe on the city streets. 
+"There’s data to show that when we have bike lanes, car to car collisions go down along those streets, as do collisions and impacts on people walking," said Jacquelyn Hayward, Toronto’s Director, Transportation Project Design & Management [@Braun]. In 2016, Toronto launched a network plan named Vision Zero to install safety initiatives with the goal to decrease driving collisions and fatalities, with a specific focus on children, older citizens, pedestrians, and cyclists. 650 kilometers of trail, bike, and pedestrians lanes and paths have been funded by the government of Canada, and 15 kilometers of bike lanes have been established in city of Toronto in 2018 and 2019. But have these efforts by the city of Toronto led to an increase in cyclists and pedestrians?
 
-From here, I will investigate any patterns or correlations between the severity of cyclist collisions over the years. This can give us an idea of whether Toronto streets are safe for cyclcists, whether bike lanes are creating a safer environment for cyclists, and the city of Toronto has implemented any safety concerns to make it safer for cyclists in the city. 
+Inherit issues such as heavy traffic, ongoing construction, unsafe road conditions, and the alarming number of vehicle and pedestrian accidents cause citizens to be apprehensive to walk or cycle down the streets of Toronto. "Toronto is the most perilous city in the world to be a cyclist," states Henry Gold, "it's more dangerous than anywhere else in the world," [@Murphy]. Council Mike Layton says that people should not be afraid to leave their homes and walk on the street because they are in fear of an accident. Clearly, there is uncertainty that this over $87 million project Vision Zero has made an impact on the number of pedestrian and cyclists collisions and fatalities. For citizens to take advantage of initiatives the city of Toronto has implemented to make pedestrians safer, they must not question whether  these measures are effective or not. 
+
+From here, I will analyze if there has been any overall change in pedestrian and cyclist collisions and fatalities in the city of Toronto, as well as the severity of injuries, to overview the trends of these variables over the years, as well as to infer on the city's Vision Zero plan, and give insight on the safety conditions for pedestrians and cyclists.
 
 # 2. Data
+In this section, I will explain the contents of the data, the variables considered, and observations made from analyzing the data.
 
-## 2.1 Introducing and cleaning the data
+## 2.1 Introducing the data
 
-The data used for this paper has been retrieved from the City of Toronto Open Data Portal, titled Motor Vehicle Collisions involving Killed or Seriously Injured Persons. It includes driving collisions recorded from 2006 to 2022, listing many variables about the collisions such as location, people invovled, weather conditions, driver actions, speed and so on.
+The data used for this paper has been retrieved from the City of Toronto Open Data Portal [@OpenData], titled "Motor Vehicle Collisions involving Killed or Seriously Injured Persons" [@Collisions]. It includes driving collisions recorded from 2006 to 2022, listing 50 variables about the collisions such as location, people involved and age, weather conditions, driver actions, speed, and injuries. Data was cleaned and analyzed using R [@R], using functions from the following packages: knitr [@rKnitr], tidyverse [@rtidyverse], and lubricate [@rLubricate].
 
 ## 2.2 Variables of interest
-Since I am comparing pedestrian and cyclist collisions, I have filtered the data to show only pedestrian and cyclist collisions, and have selected the variables 'Date' and 'Injury' to study. 'Date' is formatted as YYYY-MM-DD and 'Injury' lists the severity of the injury of the cyclist or pedestrian from 'None', 'Minimal', 'Minor', 'Major' and 'Fatal'. 'DRIVACT', 'PEDACT' and 'CYCACT' all list the actions of the respective person, whether they were driving/ cycling/ walking properly, made an illegal action, etc. I then created two new columns titled 'Year' and 'Month', to separate the year and month information to allow for easier comparison of years and months. 
+Since I am comparing pedestrian and cyclist collisions, I have filtered the data to show only pedestrian and cyclist collisions, and have selected the variables 'Date' and 'Injury' to study. 'Date' is formatted as YYYY-MM-DD and 'Injury' lists the severity of the injury of the cyclist or pedestrian from 'None', 'Minimal', 'Minor', 'Major' and 'Fatal'. 'DRIVACT', 'PEDACT' and 'CYCACT' are variables that I have decided to include, which list the actions of the respective person, whether they were driving/ cycling/ walking properly, made an illegal action, etc. I then created two new columns titled 'Year' and 'Month', to separate the year and month information to allow for easier comparison of years and months. 
 
 ```{r}
-#| include: false
+#| echo: false
+#| label: fig-uniquename
+#| fig-cap: Number of pedestrian and cyclist injuries and fatalities by year
 #creating MONTH and YEAR column 
 cyclists_collisions$DATE <- as.Date(cyclists_collisions$DATE)
 cyclists_collisions <- cyclists_collisions %>% arrange(DATE)
@@ -60,10 +63,19 @@ years <- cyclists_collisions %>%
   mutate(YEAR = format(DATE, "%Y"), 
          MONTH = format(DATE, "%m")) %>%
   group_by(YEAR, MONTH)
+
+# creating table
+years_sum <- years %>% group_by(YEAR, INJURY) %>% summarise(count=n(), .groups="drop")
+
+total_injuries<- years_sum %>% filter(INJURY != 'Fatal') %>% group_by(YEAR) %>% summarise(total_injuries = sum(count), .groups = "drop")
+total_fatalities <- years_sum %>%
+  filter(INJURY == 'Fatal') %>% group_by(YEAR) %>% summarise(total_fatalities = sum(count), .groups = "drop")
+
+years_voi <- left_join(total_injuries, total_fatalities, by = "YEAR")
+kable(years_voi, booktabs = TRUE, col.names = c("Year", "Number of Injuries", "Number of Fatalities"))
 ```
+As a slight overview, I printed the number of injuries (not including fatalities) and fatalities in @fig-uniquename to get an idea of the trend. It is clear that the number of injuries is on an overall decline, as well as the number of fatalities, but with a spike in fatalities between 2013-2019. However, this is just some rough insight and I shall analyze the data more rigorously. 
 
-
-I then grouped the data by 4 year intervals to have an overview of the data. Looking at this overview, it is abundantly clear that the number of collisions decreased around 2014 and 2021, and over all decreased from 2006 to 2022. What could be the possibility for that?
 ```{r, fig.width=9, fig.align='center'}
 #| echo: false
 years %>% ggplot(mapping = aes(x = YEAR, fill = INJURY)) + geom_bar() +
@@ -72,15 +84,20 @@ years %>% ggplot(mapping = aes(x = YEAR, fill = INJURY)) + geom_bar() +
 ```
 
 
-## 2.3 some observations
+# 3. Analysing the data
 
-https://www.toronto.ca/services-payments/streets-parking-transportation/road-safety/vision-zero/vision-zero-dashboard/
-Vision Zero is an action plan implemented by the city of Toronto focused on reducing the amount of traffic and driving related fatalities. This plan was launched in 2016. Here we can observe the data of fatalities from 2016 until 2022. 
 
 ```{r, fig.width=9, fig.align='center'}
 #| echo: false
-years_sum <- years %>% group_by(YEAR, INJURY) %>% summarise(count=n(), .groups="drop")
 years_sum %>% filter(YEAR > 2016) %>% ggplot(aes(x = YEAR, y = count, color = INJURY)) + 
+  geom_point() +
+  geom_line(aes(group = INJURY)) +
+  theme_minimal() + labs(x = "Year", y = "Count", caption = "Some bullshit")
+
+
+years_sum <- years %>% group_by(YEAR, INJURY) %>% summarise(count=n(), .groups="drop")
+years_sum
+years_sum %>% ggplot(aes(x = YEAR, y = count, color = INJURY)) + 
   geom_point() +
   geom_line(aes(group = INJURY)) +
   theme_minimal() + labs(x = "Year", y = "Count", caption = "Some bullshit")
@@ -110,6 +127,6 @@ year_2017 + year_2018
 
 
 
-# 3. Results
+# 4. Results
 
-# 4. References
+# 5. References
