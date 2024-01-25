@@ -20,22 +20,32 @@ library(tidyverse)
 library(knitr)
 library(lubridate)
 library(patchwork)
+library(dplyr)
 ```
 
 
 ```{r}
 #| include: false
-data <- read_csv("/cloud/project/inputs/data/unedited_data.csv")
+data <- read_csv("/cloud/project/inputs/unedited_data.csv")
 
-#filtering data
-cyclists_collisions <- data %>% filter(IMPACTYPE == 'Cyclist Collisions' | IMPACTYPE == 'Pedestrian Collisions') %>% select(DATE,IMPACTYPE, INVTYPE, INJURY)
+years <- data %>% 
+  filter(IMPACTYPE == 'Cyclist Collisions' | IMPACTYPE == 'Pedestrian Collisions') %>% 
+  select(DATE, IMPACTYPE, INVTYPE, INJURY, DRIVACT, PEDACT, CYCACT)
 
+# sorting by date
+years$DATE <- as.Date(years$DATE)
+years <- years %>% arrange(DATE)
+
+# created 'month' and 'year' columns to help with data analyzing
+years <- years %>%
+  mutate(YEAR = format(DATE, "%Y"), MONTH = format(DATE, "%m")) %>%
+  group_by(YEAR, MONTH)
 ```
 
 # 1. Introduction
   Toronto stands among the many cities that has been advocating for more eco-friendly commuting practices among its citizens. A key aspect of this initiative involves the promotion of alternative modes of transportation, such as cycling, walking, and utilizing public transit options. The city has taken measures to implement and enforce these commuting alternatives, including the constant integration of bike lanes on city roads and the introduction of rentable city bikes, with hubs conveniently placed around the city for pickup and return of the bikes. Besides a means of commuting to work, the city also encourages citizens to explore these option under favorable weather conditions or when venturing out to local events or shops of shorter distance.  
 
-"There’s data to show that when we have bike lanes, car to car collisions go down along those streets, as do collisions and impacts on people walking," said Jacquelyn Hayward, Toronto’s Director, Transportation Project Design & Management [@Braun]. In 2016, Toronto launched a network plan named Vision Zero to install safety initiatives with the goal to decrease driving collisions and fatalities, with a specific focus on children, older citizens, pedestrians, and cyclists. 650 kilometers of trail, bike, and pedestrians lanes and paths have been funded by the government of Canada, and 15 kilometers of bike lanes have been established in city of Toronto in 2018 and 2019. But have these efforts by the city of Toronto led to an increase in cyclists and pedestrians?
+"There’s data to show that when we have bike lanes, car to car collisions go down along those streets, as do collisions and impacts on people walking," said Jacquelyn Hayward, Toronto’s Director, Transportation Project Design & Management [@Braun]. In 2016, Toronto launched a network plan named Vision Zero to install safety initiatives with the goal to decrease driving collisions and fatalities, with a specific focus on children, older citizens, pedestrians, and cyclists [@VisionZero]. 650 kilometers of trail, bike, and pedestrians lanes and paths have been funded by the government of Canada, and 15 kilometers of bike lanes have been established in city of Toronto in 2018 and 2019. But have these efforts by the city of Toronto led to an increase in cyclists and pedestrians?
 
 Inherit issues such as heavy traffic, ongoing construction, unsafe road conditions, and the alarming number of vehicle and pedestrian accidents cause citizens to be apprehensive to walk or cycle down the streets of Toronto. "Toronto is the most perilous city in the world to be a cyclist," states Henry Gold, "it's more dangerous than anywhere else in the world," [@Murphy]. Council Mike Layton says that people should not be afraid to leave their homes and walk on the street because they are in fear of an accident. Clearly, there is uncertainty that this over $87 million project Vision Zero has made an impact on the number of pedestrian and cyclists collisions and fatalities. For citizens to take advantage of initiatives the city of Toronto has implemented to make pedestrians safer, they must not question whether  these measures are effective or not. 
 
@@ -46,87 +56,118 @@ In this section, I will explain the contents of the data, the variables consider
 
 ## 2.1 Introducing the data
 
-The data used for this paper has been retrieved from the City of Toronto Open Data Portal [@OpenData], titled "Motor Vehicle Collisions involving Killed or Seriously Injured Persons" [@Collisions]. It includes driving collisions recorded from 2006 to 2022, listing 50 variables about the collisions such as location, people involved and age, weather conditions, driver actions, speed, and injuries. Data was cleaned and analyzed using R [@R], using functions from the following packages: knitr [@rKnitr], tidyverse [@rtidyverse], and lubricate [@rLubricate].
+The data used for this paper has been retrieved from the City of Toronto Open Data Portal [@OpenData], titled "Motor Vehicle Collisions involving Killed or Seriously Injured Persons" [@Collisions]. It includes driving collisions recorded from 2006 to 2022, listing 50 variables about the collisions such as location, people involved and age, weather conditions, driver actions, speed, and injuries. Data was cleaned and analyzed using R [@R], using functions from the following packages: knitr [@rKnitr], tidyverse [@rTidyverse], and lubricate [@rLubricate].
 
 ## 2.2 Variables of interest
 Since I am comparing pedestrian and cyclist collisions, I have filtered the data to show only pedestrian and cyclist collisions, and have selected the variables 'Date' and 'Injury' to study. 'Date' is formatted as YYYY-MM-DD and 'Injury' lists the severity of the injury of the cyclist or pedestrian from 'None', 'Minimal', 'Minor', 'Major' and 'Fatal'. 'DRIVACT', 'PEDACT' and 'CYCACT' are variables that I have decided to include, which list the actions of the respective person, whether they were driving/ cycling/ walking properly, made an illegal action, etc. I then created two new columns titled 'Year' and 'Month', to separate the year and month information to allow for easier comparison of years and months. 
 
-```{r}
+```{r, fig.width=9, fig.height=4.5, fig.align='center'}
 #| echo: false
-#| label: fig-uniquename
+#| label: fig-1
 #| fig-cap: Number of pedestrian and cyclist injuries and fatalities by year
-#creating MONTH and YEAR column 
-cyclists_collisions$DATE <- as.Date(cyclists_collisions$DATE)
-cyclists_collisions <- cyclists_collisions %>% arrange(DATE)
 
-years <- cyclists_collisions %>%
-  mutate(YEAR = format(DATE, "%Y"), 
-         MONTH = format(DATE, "%m")) %>%
-  group_by(YEAR, MONTH)
+years_sum <- years %>% group_by(YEAR, INJURY) %>% 
 
-# creating table
-years_sum <- years %>% group_by(YEAR, INJURY) %>% summarise(count=n(), .groups="drop")
+total_injuries<- years_sum %>% filter(INJURY != 'Fatal') %>% 
+  group_by(YEAR) %>% 
+  summarise(total_injuries = sum(count), .groups = "drop")
 
-total_injuries<- years_sum %>% filter(INJURY != 'Fatal') %>% group_by(YEAR) %>% summarise(total_injuries = sum(count), .groups = "drop")
 total_fatalities <- years_sum %>%
-  filter(INJURY == 'Fatal') %>% group_by(YEAR) %>% summarise(total_fatalities = sum(count), .groups = "drop")
+  filter(INJURY == 'Fatal') %>% 
+  group_by(YEAR) %>% 
+  summarise(total_fatalities = sum(count), .groups = "drop")
 
 years_voi <- left_join(total_injuries, total_fatalities, by = "YEAR")
-kable(years_voi, booktabs = TRUE, col.names = c("Year", "Number of Injuries", "Number of Fatalities"))
+kable(years_voi, booktabs = TRUE, 
+      col.names = c("Year", "Injuries", "Fatalities"))
 ```
-As a slight overview, I printed the number of injuries (not including fatalities) and fatalities in @fig-uniquename to get an idea of the trend. It is clear that the number of injuries is on an overall decline, as well as the number of fatalities, but with a spike in fatalities between 2013-2019. However, this is just some rough insight and I shall analyze the data more rigorously. 
+As a slight overview, I printed the number of injuries (not including fatalities) and fatalities in @fig-1 to get an idea of the trend. It is clear that the number of injuries is on an overall decline, as well as the number of fatalities, but with a spike in fatalities between 2013-2019. However, this is just some rough insight and I shall analyze the data more rigorously. 
 
-```{r, fig.width=9, fig.align='center'}
+# 3 Analysing the data
+In this section, I will filter the data accordingly, analyzing the variables and any trends or correlations that may occur.
+
+## 3.1 Injuries and fatalities overtime
+Firstly, I want to explore the general trend of injuries and fatalities over the years of 2006 to 2022. We saw in @fig-1 that the general trend of injuries is on a decline. Lets observe this on a line graph. 
+```{r, fig.width=9, fig.height=4.5, fig.align='center'}
 #| echo: false
-years %>% ggplot(mapping = aes(x = YEAR, fill = INJURY)) + geom_bar() +
-  labs(x = "Year", y = "Number ofobservations", fill= "Level of injury") +
-  theme(legend.position="right") 
+#| label: fig-2
+#| fig-cap: Line graph of cyclist and pedestrian injuries vs. fatalities from 2006 to 2022
+
+#graph of injuries vs. fatalities
+years_fatalities <- full_join(total_injuries, total_fatalities, by = "YEAR")
+
+injury_total <- years_fatalities %>% ggplot(aes(x = YEAR)) +
+  geom_line(aes(y = total_injuries, color = "Injuries", group = 1)) +
+  geom_line(aes(y = total_fatalities, color = "Fatalities", group = 1)) +
+  labs(color = "Type", y = "Count", 
+       title = "Total Injuries and Fatalities Over Time") +
+  theme_minimal()
+
+injury_total
 ```
+Observing @fig-2, we notice the general decline beginning in 2013, with a substantial decrease from 2013 to 2014, dropping from 672 to 419 injuries. This decline persists throughout subsequent years, with the exception of 2018, where the number of injuries spikes to approximately 550. 
 
+## 3.2 Severity of injuries
 
-# 3. Analysing the data
-
-
-```{r, fig.width=9, fig.align='center'}
+I shall also observe the severity of injuries overtime.
+```{r, fig.width=9, fig.height=4.5, fig.align='center'}
 #| echo: false
-years_sum %>% filter(YEAR > 2016) %>% ggplot(aes(x = YEAR, y = count, color = INJURY)) + 
+#| label: fig-3
+#| fig-cap: Line graph of cyclist and pedestrian injuries from 2006 to 2022, listed by severity
+
+#graph of total injuries over the years
+injuries_split <- years_sum %>% ggplot(aes(x = YEAR, y = count, color = INJURY)) + 
   geom_point() +
   geom_line(aes(group = INJURY)) +
-  theme_minimal() + labs(x = "Year", y = "Count", caption = "Some bullshit")
+  theme_minimal() + 
+  labs(x = "Year", y = "Count", color = " Level of injury")
 
+injuries_split
+```
+In @fig-3, we fortunately notice that a large number of cyclist and pedestrian accidents are listed as no injuries, almost twice the accidents are 'no injuries'. However, there are a great amount of accidents listed as 'major accidents'. We notice a major drop in both no injuries and major injuries initiating in 2013. In 2013 to 2019, there was a higher number of fatal injuries recorded, with an average of 42 fatalities a year.
 
-years_sum <- years %>% group_by(YEAR, INJURY) %>% summarise(count=n(), .groups="drop")
-years_sum
-years_sum %>% ggplot(aes(x = YEAR, y = count, color = INJURY)) + 
+## 3.3 Observing years 2016 and after
+
+I discussed earlier about Toronto's Vision Zero plan, which was implemented in 2016. I shall observe the data of the years 2016 and on.
+
+```{r, fig.width=9, fig.height=3.5, fig.align='center'}
+#| echo: false
+#| label: fig-4
+#| fig-cap: Line graph of cyclist and pedestrian injuries from 2016 to 2022, listed by severity
+
+year_2016 <- years_sum %>% filter(YEAR >= 2016) %>% 
+  ggplot(aes(x = YEAR, y = count, color = INJURY)) + 
   geom_point() +
   geom_line(aes(group = INJURY)) +
-  theme_minimal() + labs(x = "Year", y = "Count", caption = "Some bullshit")
-
+  theme_minimal() + 
+  labs(x = "Year", y = "Count", color = " Level of injury")
+ year_2016
 ```
+In @fig-4, we notice there is a spike of injuries in 2018. Leading up to this period, it appears that Toronto's Vision Zero plan has not made an observable impact on pedestrian and cyclist collisions. As the incident count begins to decline, Covid-19 was introduced at the end of 2019, and lockdown was put in place in March 2020. This can describe the steady decline in accidents, as citizens were asked to limit their needs of driving, and asked to stay home whenever feasible. As lockdowns were officially lifted in June of 2021, a resurgence of accidents began again. 
 
-- change graph to maybe line graphs?
-https://www.cbc.ca/news/canada/toronto/pedestrian-deaths-prompt-concern-1.4560548
 
-There has been reported an increase in and pedestrian deaths from 2017 to 2018. Here we can compare the the two years, and notice a jump in injuries. 
-
-```{r, fig.height=3.5, fig.width=6, fig.align='center'}
+```{r}
 #| echo: false
+#| label: fig-5
+#| fig-cap: Line graph of cyclist and pedestrian injuries from 2016 to 2022, listed by severity
 
-#years %>% filter(YEAR == 2017, INJURY == 'Fatal') %>% summarise(n=n())
-#years %>% filter(YEAR == 2018, INJURY == 'Fatal') %>% summarise(n=n())
-year_2017 <- years %>% filter(YEAR == 2017) %>% ggplot(mapping = aes(x = YEAR, fill = INJURY)) + geom_bar(position = "dodge2") +
-  labs(x = "Year", y = "Number ofobservations", fill= "Level of injury") +
-  theme(legend.position="none")
-year_2018 <- years %>% filter(YEAR == 2018) %>% ggplot(mapping = aes(x = YEAR, fill = INJURY)) + geom_bar(position = "dodge2") +
-  labs(x = "Year", y = "Number ofobservations", fill= "Level of injury")
+total_injuries<- years_sum %>% filter(INJURY != 'Fatal') %>% 
+  group_by(YEAR) %>% 
+  summarise(total_injuries = sum(count), .groups = "drop")
 
-year_2017 + year_2018
+years_fatalities$Injuriesroc <- c(NA, diff(years_fatalities$total_injuries))
+years_fatalities$Fatalitiesroc <- c(NA, diff(years_fatalities$total_fatalities))
 
+
+years_fatalities %>% select(YEAR, Injuriesroc, Fatalitiesroc) %>% 
+  filter(YEAR >2015) %>% kable(booktabs = TRUE, 
+      col.names = c("Year", "% Injuries", "% Fatalities"))
 ```
-
-
-
+In @fig-5, I have outlined the rate of change of injuries and fatalities from each year to the next. Although there is a sharp decline from 2019 to 2021, the increase from 2021 to 2022 is fairly rapid.
 
 # 4. Results
+Overall, it is obvious to point out that the general trend of pedestrian and cyclist injuries from 2006-2022 is on a decline. However, we notice a spike of injuries in 2018 seen in @fig-4, implying that Toronto's Vision Zero plan had not produced an observable impact on collisions during 2016 to 2018. Moreover, there is a significant decline in accidents in 2019, most likely due to the introduction of Covid-19 and Ontario's stay at home orders until June 2021. While this data offers insight of accident rates from 2006-2022, it does not offer a lot of insight on the target years I was observing. This leads to an uncomprehensive view of the factors affecting pedestrian and cyclist safety. 
 
+Moreover, the post lockdown period from June 2021 reveals an 111% increase in accidents in @fig-5 after Covid-19 measures were lifted. It's important to acknowledge that this increase may be influenced by factors from the pandemic, however, this increase may be of concern to pedestrians and cyclists, as a jump this abrupt can be a saftey concern.
+ 
 # 5. References
