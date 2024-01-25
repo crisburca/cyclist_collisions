@@ -1,5 +1,5 @@
 ---
-title: "final draft"
+title: "Pedestrian and Cyclist Collisions from 2006 to 2022 in Toronto"
 author: "Cristina Burca"
 date: "January 23rd, 2024"
 abstract: "Investigation of cyclist and pedestrain collisions in Toronto over the years. Meaning to answer the question of if Toronto is a safe city for cyclists and pedestrians, and if the citizens themselves agree based on statisics. Results?"
@@ -9,18 +9,23 @@ format:
     toc: true
     toc_depth: 3  # upto three depths of headings (specified by #, ## and ###)
     number_sections: true
-data: ""
+thanks: "Code and data from this paper are available at: https://github.com/NotSakura/Police_ArrestedAndCharged.git"
 bibliography: references.bib
 ---
 
 ```{r}
-#| include: false
+#| include: true
 library(readr)
 library(tidyverse)
 library(knitr)
 library(lubridate)
 library(patchwork)
 library(dplyr)
+library(gitcreds)
+library(usethis)
+
+gitcreds_set()
+
 ```
 
 
@@ -67,6 +72,7 @@ Since I am comparing pedestrian and cyclist collisions, I have filtered the data
 #| fig-cap: Number of pedestrian and cyclist injuries and fatalities by year
 
 years_sum <- years %>% group_by(YEAR, INJURY) %>% 
+  summarise(count=n(), .groups="drop")
 
 total_injuries<- years_sum %>% filter(INJURY != 'Fatal') %>% 
   group_by(YEAR) %>% 
