@@ -1,0 +1,115 @@
+---
+title: "final draft"
+author: "Cristina Burca"
+date: "January 23rd, 2024"
+abstract: "Investigation of cyclist and pedestrain collisions in Toronto over the years. Meaning to answer the question of if Toronto is a safe city for cyclists and pedestrians, and if the citizens themselves agree based on statisics. Results?"
+introduction: ""
+format:
+  pdf:
+    toc: true
+    toc_depth: 3  # upto three depths of headings (specified by #, ## and ###)
+    number_sections: true
+data: ""
+references: ""
+---
+
+```{r}
+#| include: false
+library(tidyverse)
+library(knitr)
+library(lubridate)
+library(patchwork)
+```
+
+
+```{r}
+#| include: false
+data <- read_csv("Motor Vehicle Collisions with KSI Data - 4326.csv")
+
+#filtering data
+cyclists_collisions <- data %>% filter(IMPACTYPE == 'Cyclist Collisions' | IMPACTYPE == 'Pedestrian Collisions') %>% select(DATE,IMPACTYPE, INVTYPE, INJURY)
+```
+
+# 1. Introduction
+ Toronto is one of the many cities that has been advocating for citizens to find more environmentally friendly transportation to work. One of the many things the city has been promoting is biking, walking or taking public transport. By implementing bike lanes onto streets and providing rentable city bikes that you may pick up and drop off at a number of locations, the city hopes to encourage citizens to use these options. Many locals also enjoy bike rides in warm weather or to local events and shops. However, the streets of downtown Toronto have been many times been deemed unsafe due to traffic, construction and lack of bike lanes for cyclists and pedestrains. 
+ 
+Toronto is the most perilous city in the world to be a cyclist.
+ 
+There are trends of cyclist and pedestrian collisions happening around the city, increasing by year. 
+
+For citizens to take advantage of newly built bike lanes and close-distance shopping, they must feel safe on the city streets. 
+
+From here, I will investigate any patterns or correlations between the severity of cyclist collisions over the years. This can give us an idea of whether Toronto streets are safe for cyclcists, whether bike lanes are creating a safer environment for cyclists, and the city of Toronto has implemented any safety concerns to make it safer for cyclists in the city. 
+
+# 2. Data
+
+## 2.1 Introducing and cleaning the data
+
+The data used for this paper has been retrieved from the City of Toronto Open Data Portal, titled Motor Vehicle Collisions involving Killed or Seriously Injured Persons. It includes driving collisions recorded from 2006 to 2022, listing many variables about the collisions such as location, people invovled, weather conditions, driver actions, speed and so on.
+
+## 2.2 Variables of interest
+Since I am comparing pedestrian and cyclist collisions, I have filtered the data to show only pedestrian and cyclist collisions, and have selected the variables 'Date' and 'Injury' to study. 'Date' is formatted as YYYY-MM-DD and 'Injury' lists the severity of the injury of the cyclist or pedestrian from 'None', 'Minimal', 'Minor', 'Major' and 'Fatal'. 'DRIVACT', 'PEDACT' and 'CYCACT' all list the actions of the respective person, whether they were driving/ cycling/ walking properly, made an illegal action, etc. I then created two new columns titled 'Year' and 'Month', to separate the year and month information to allow for easier comparison of years and months. 
+
+```{r}
+#| include: false
+#creating MONTH and YEAR column 
+cyclists_collisions$DATE <- as.Date(cyclists_collisions$DATE)
+cyclists_collisions <- cyclists_collisions %>% arrange(DATE)
+
+years <- cyclists_collisions %>%
+  mutate(YEAR = format(DATE, "%Y"), 
+         MONTH = format(DATE, "%m")) %>%
+  group_by(YEAR, MONTH)
+```
+
+
+I then grouped the data by 4 year intervals to have an overview of the data. Looking at this overview, it is abundantly clear that the number of collisions decreased around 2014 and 2021, and over all decreased from 2006 to 2022. What could be the possibility for that?
+```{r, fig.width=9, fig.align='center'}
+#| echo: false
+years %>% ggplot(mapping = aes(x = YEAR, fill = INJURY)) + geom_bar() +
+  labs(x = "Year", y = "Number ofobservations", fill= "Level of injury") +
+  theme(legend.position="right") 
+```
+
+
+## 2.3 some observations
+
+https://www.toronto.ca/services-payments/streets-parking-transportation/road-safety/vision-zero/vision-zero-dashboard/
+Vision Zero is an action plan implemented by the city of Toronto focused on reducing the amount of traffic and driving related fatalities. This plan was launched in 2016. Here we can observe the data of fatalities from 2016 until 2022. 
+
+```{r, fig.width=9, fig.align='center'}
+#| echo: false
+years_sum <- years %>% group_by(YEAR, INJURY) %>% summarise(count=n(), .groups="drop")
+years_sum %>% filter(YEAR > 2016) %>% ggplot(aes(x = YEAR, y = count, color = INJURY)) + 
+  geom_point() +
+  geom_line(aes(group = INJURY)) +
+  theme_minimal() + labs(x = "Year", y = "Count", caption = "Some bullshit")
+
+```
+
+- change graph to maybe line graphs?
+https://www.cbc.ca/news/canada/toronto/pedestrian-deaths-prompt-concern-1.4560548
+
+There has been reported an increase in and pedestrian deaths from 2017 to 2018. Here we can compare the the two years, and notice a jump in injuries. 
+
+```{r, fig.height=3.5, fig.width=6, fig.align='center'}
+#| echo: false
+
+#years %>% filter(YEAR == 2017, INJURY == 'Fatal') %>% summarise(n=n())
+#years %>% filter(YEAR == 2018, INJURY == 'Fatal') %>% summarise(n=n())
+year_2017 <- years %>% filter(YEAR == 2017) %>% ggplot(mapping = aes(x = YEAR, fill = INJURY)) + geom_bar(position = "dodge2") +
+  labs(x = "Year", y = "Number ofobservations", fill= "Level of injury") +
+  theme(legend.position="none")
+year_2018 <- years %>% filter(YEAR == 2018) %>% ggplot(mapping = aes(x = YEAR, fill = INJURY)) + geom_bar(position = "dodge2") +
+  labs(x = "Year", y = "Number ofobservations", fill= "Level of injury")
+
+year_2017 + year_2018
+
+```
+
+
+
+
+# 3. Results
+
+# 4. References
